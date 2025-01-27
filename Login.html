@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login e Cadastro</title>
+    <script src="https://cdn.jsdelivr.net/npm/alasql/dist/alasql.min.js"></script>
+    <script src="localasql.js"></script>
+    <link rel="stylesheet" href="style_login.css">
+</head>
+
+<body>
+    <div class="container">
+        <h2 id="form-title">Login</h2>
+        <div id="message" style="color: red; text-align: center; margin-bottom: 10px;"></div>
+        <div class="form-group">
+            <label for="username">Usuário</label>
+            <input type="text" id="username" placeholder="Digite seu usuário">
+        </div>
+        <div class="form-group">
+            <label for="password">Senha</label>
+            <input type="password" id="password" placeholder="Digite sua senha">
+        </div>
+        <button id="action-button">Entrar</button>
+        <div class="toggle" id="toggle-form">Não tem uma conta? Cadastre-se</div>
+        <div class="form-group">
+            <br>
+            <button id="config-button">Configuração</button>
+            <input type="file" id="file-input" accept="application/json" hidden>
+        </div>
+    </div>
+
+    <script>
+        alasql("CREATE TABLE IF NOT EXISTS users (username STRING, password STRING)");
+
+        let isLoginMode = true;
+
+        const formTitle = document.getElementById("form-title");
+        const message = document.getElementById("message");
+        const actionButton = document.getElementById("action-button");
+        const toggleForm = document.getElementById("toggle-form");
+        const usernameInput = document.getElementById("username");
+        const passwordInput = document.getElementById("password");
+
+        toggleForm.addEventListener("click", () => {
+            isLoginMode = !isLoginMode;
+            formTitle.textContent = isLoginMode ? "Login" : "Cadastro";
+            actionButton.textContent = isLoginMode ? "Entrar" : "Cadastrar";
+            toggleForm.textContent = isLoginMode ? "Não tem uma conta? Cadastre-se" : "Já tem uma conta? Faça login";
+            message.textContent = "";
+        });
+
+        actionButton.addEventListener("click", () => {
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            if (!username || !password) {
+                message.textContent = "Preencha todos os campos.";
+                return;
+            }
+
+            if (isLoginMode) {
+                const result = alasql("SELECT * FROM users WHERE username = ? AND password = ?", [username, password]);
+                if (result.length > 0) {
+                    message.style.color = "green";
+                    message.textContent = "Login bem-sucedido!";
+                    setTimeout(() => {
+                        window.location.href = "Cadastro.html";
+                    }, 1000);
+                } else {
+                    message.style.color = "red";
+                    message.textContent = "Usuário ou senha incorretos.";
+                }
+            } else {
+                const userExists = alasql("SELECT * FROM users WHERE username = ?", [username]).length > 0;
+                if (userExists) {
+                    message.style.color = "red";
+                    message.textContent = "Usuário já existe.";
+                } else {
+                    alasql("INSERT INTO users VALUES (?, ?)", [username, password]);
+                    message.style.color = "green";
+                    message.textContent = "Usuário cadastrado com sucesso!";
+                    usernameInput.value = "";
+                    passwordInput.value = "";
+                }
+            }
+        });
+    </script>
+
+    <script>
+        const configButton = document.getElementById("config-button");
+        const fileInput = document.getElementById("file-input");
+
+        configButton.addEventListener("click", () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener("change", (event) => {
+            const file = event.target.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+
+                        if (Array.isArray(data)) {
+                            alasql("CREATE TABLE IF NOT EXISTS users (username STRING, password STRING)");
+                            alasql("DELETE FROM users");
+
+                            data.forEach(user => {
+                                if (user.username && user.password) {
+                                    alasql("INSERT INTO users VALUES (?, ?)", [user.username, user.password]);
+                                }
+                            });
+                            alert("Banco de dados importado com sucesso!");
+                        } else {
+                            alert("O arquivo JSON deve conter um array de objetos com 'username' e 'password'.");
+                        }
+                    } catch (error) {
+                        alert("Erro ao importar o arquivo. Certifique-se de que seja um JSON válido.");
+                    }
+                };
+
+                reader.readAsText(file);
+            }
+        });
+
+    </script>
+</body>
+
+</html>

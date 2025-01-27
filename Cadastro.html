@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastro de Clientes e Endereços</title>
+  <script src="https://cdn.jsdelivr.net/npm/alasql/dist/alasql.min.js"></script>
+  <script src="localasql.js"></script>
+  <link rel="stylesheet" href="style_cadastro.css">
+</head>
+
+<body>
+  <class="container">
+    <div class="navigation">
+      <button id="cliente-section-btn" class="btn-top">Clientes</button>
+      <button id="endereco-section-btn" class="btn-top">Endereços</button>
+    </div>
+
+    <div id="cliente-section" class="section active">
+      <h2>Clientes</h2>
+      <div>
+        <button id="export-cliente-btn">Exportar</button>
+        <button id="import-cliente-btn">Importar</button>
+        <input type="file" id="file-input" accept="application/json" hidden>
+        <button id="voltar-cliente-btn">Voltar à Tela de Clientes</button>
+      </div>
+      <form id="cliente-form" style="margin-top: 20px;">
+        <div class="form-group">
+          <label for="cliente-nome">Nome Completo</label>
+          <input type="text" id="cliente-nome" required>
+        </div>
+        <div class="form-group">
+          <label for="cliente-cpf">CPF</label>
+          <input type="text" id="cliente-cpf" required>
+        </div>
+        <div class="form-group">
+          <label for="cliente-dat">Data de Nascimento</label>
+          <input type="date" id="cliente-dat" required>
+        </div>
+        <div class="form-group">
+          <label for="cliente-telefone">Telefone</label>
+          <input type="text" id="cliente-telefone">
+        </div>
+        <div class="form-group">
+          <label for="cliente-celular">Celular</label>
+          <input type="text" id="cliente-celular">
+        </div>
+        <button type="button" id="save-cliente-btn">Salvar Cliente</button>
+      </form>
+
+      <select id="filtro-cliente">
+        <option value="nome">Nome</option>
+        <option value="cpf">CPF</option>
+        <option value="nascimento">Data de Nascimento</option>
+        <option value="telefone">Telefone</option>
+        <option value="celular">Celular</option>
+      </select>
+      <input type="text" id="filtro-valor_cliente" placeholder="Digite o valor para o filtro">
+      <button id="encontrar-cliente-btn">Encontrar</button>
+      <table id="resultados-consulta_cliente">
+        <thead>
+          <tr>
+            <th>ID Cliente</th>
+            <th>Nome Completo</th>
+            <th>CPF</th>
+            <th>Data de Nascimento</th>
+            <th>Telefone</th>
+            <th>Celular</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <div id="no-results" class="no-results">Nenhum cliente encontrado com o filtro informado.</div>
+    </div>
+
+    <div id="endereco-section" class="section">
+      <h2>Endereços</h2>
+      <div>
+        <button id="export-endereco-btn">Exportar</button>
+        <button id="import-endereco-btn">Importar</button>
+        <input type="file" id="file-input" accept="application/json" hidden>
+        <button id="voltar-endereco-btn">Voltar à Tela de Endereço</button>
+      </div>
+      <form id="endereco-form">
+        <div class="form-group">
+          <label for="cliente-id">ID do Cliente</label>
+          <input type="number" id="cliente-id" required>
+        </div>
+        <div class="form-group">
+          <label for="endereco-cep">CEP</label>
+          <input type="text" id="endereco-cep" required>
+        </div>
+        <div class="form-group">
+          <label for="endereco-rua">Rua</label>
+          <input type="text" id="endereco-rua" required>
+        </div>
+        <div class="form-group">
+          <label for="endereco-bairro">Bairro</label>
+          <input type="text" id="endereco-bairro" required>
+        </div>
+        <div class="form-group">
+          <label for="endereco-cidade">Cidade</label>
+          <input type="text" id="endereco-cidade" required>
+        </div>
+        <div class="form-group">
+          <label for="endereco-estado">Estado</label>
+          <input type="text" id="endereco-estado" required>
+        </div>
+        <div class="form-group">
+          <label for="endereco-pais">País</label>
+          <input type="text" id="endereco-pais" required>
+        </div>
+        <div class="form-group">
+          <label for="endereco-main">Endereço Principal</label>
+          <input type="checkbox" id="endereco-main">
+        </div>
+        <button type="button" id="save-endereco-btn">Salvar Endereço</button>
+      </form>
+      <select id="filtro">
+        <option value="clientId">ID Cliente</option>
+        <option value="cep">CEP</option>
+        <option value="rua">Rua</option>
+        <option value="bairro">Bairro</option>
+        <option value="estado">Estado</option>
+        <option value="cidade">Cidade</option>
+        <option value="pais">País</option>
+      </select>
+      <input type="text" id="filtro-valor" placeholder="Digite o valor para o filtro">
+      <button id="encontrar-endereco-btn">Encontrar</button>
+
+      <table id="resultados-consulta" style="display: none;">
+        <thead>
+          <tr>
+            <th>ID Cliente</th>
+            <th>CEP</th>
+            <th>Rua</th>
+            <th>Bairro</th>
+            <th>Cidade</th>
+            <th>Estado</th>
+            <th>País</th>
+            <th>Principal</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div id="no-results" class="no-results">Nenhum cliente encontrado com o filtro informado.</div>
+    </div>
+
+    <script>
+      // Configuração inicial do banco de dados
+      alasql("CREATE TABLE IF NOT EXISTS cliente (id INT, nome STRING, cpf STRING, dat DATE, telefone STRING, celular STRING)");
+      let clientId = 1;
+
+
+      // Alternar entre seções
+      document.getElementById("cliente-section-btn").addEventListener("click", () => {
+        document.getElementById("cliente-section").classList.add("active");
+        document.getElementById("endereco-section").classList.remove("active");
+      });
+
+      document.getElementById("endereco-section-btn").addEventListener("click", () => {
+        document.getElementById("endereco-section").classList.add("active");
+        document.getElementById("cliente-section").classList.remove("active");
+      });
+      document.getElementById("voltar-endereco-btn").addEventListener("click", () => {
+        document.getElementById("resultados-consulta").style.display = "none";
+      });
+
+      // Salvar cliente
+      document.getElementById("save-cliente-btn").addEventListener("click", () => {
+        const nome = document.getElementById("cliente-nome").value.trim();
+        const cpf = document.getElementById("cliente-cpf").value.trim();
+        const dat = document.getElementById("cliente-dat").value;
+        const telefone = document.getElementById("cliente-telefone").value.trim();
+        const celular = document.getElementById("cliente-celular").value.trim();
+
+        if (!nome || !cpf || !dat) {
+          alert("Por favor, preencha todos os campos obrigatórios.");
+          return;
+        }
+
+        const existingClient = alasql("SELECT * FROM cliente WHERE cpf = ?", [cpf]);
+        if (existingClient.length > 0) {
+          alert("Já existe um cliente cadastrado com este CPF.");
+          return;
+        }
+
+        alasql("INSERT INTO cliente VALUES (?, ?, ?, ?, ?, ?)", [clientId++, nome, cpf, dat, telefone, celular]);
+        alert("Cliente cadastrado com sucesso!");
+
+        document.getElementById("cliente-form").reset();
+      });
+      document.getElementById("encontrar-cliente-btn").addEventListener("click", () => {
+        const filtro = document.getElementById("filtro-cliente").value;
+        const filtroValor = document.getElementById("filtro-valor_cliente").value.trim();
+        const query = `SELECT * FROM cliente WHERE ${filtro} LIKE ?`;
+        const resultados = alasql(query, ['%' + filtroValor + '%']);
+
+        const tabela = document.getElementById("resultados-consulta_cliente");
+        const tbody = tabela.getElementsByTagName("tbody")[0];
+        const noResults = document.getElementById("no-results");
+
+        tbody.innerHTML = "";
+        noResults.style.display = "none";
+
+        if (resultados.length > 0) {
+          tabela.style.display = "table";
+          resultados.forEach(cliente => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                    <td>${cliente.id}</td>
+                    <td>${cliente.nome}</td>
+                    <td>${cliente.cpf}</td>
+                    <td>${cliente.nascimento}</td>
+                    <td>${cliente.telefone}</td>
+                    <td>${cliente.celular}</td>
+                `;
+            tbody.appendChild(row);
+          });
+        } else {
+          tabela.style.display = "none";
+          noResults.style.display = "block";
+        }
+      });
+      // Exportar clientes para JSON
+      document.getElementById("export-cliente-btn").addEventListener("click", () => {
+        const cliente = alasql("SELECT * FROM cliente");
+        const blob = new Blob([JSON.stringify(cliente, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "clientes.json";
+        a.click();
+
+        URL.revokeObjectURL(url);
+      });
+
+      //Importar banco de dados pré-populado
+      document.getElementById("import-cliente-btn").addEventListener("click", () => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".json";
+
+        input.addEventListener("change", (event) => {
+          const file = event.target.files[0];
+          if (!file) {
+            return;
+          }
+
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const data = JSON.parse(e.target.result);
+            data.forEach(cliente => {
+              alasql("INSERT INTO cliente VALUES (?, ?, ?, ?, ?, ?)", [clientId++, cliente.nome, cliente.cpf, cliente.dat, cliente.telefone, cliente.celular]);
+            });
+            alert("Clientes importados com sucesso!");
+          };
+
+          reader.readAsText(file);
+        });
+
+        input.click();
+      })
+
+      //Seção de Endereço
+
+      alasql("CREATE TABLE IF NOT EXISTS endereco (AdressId INT, clientId INT, cep STRING, rua STRING, bairro STRING, cidade STRING, estado STRING, pais STRING, main BOOLEAN)");
+
+      let addressId = 1;
+
+      document.getElementById("save-endereco-btn").addEventListener("click", () => {
+        const clientIdValue = parseInt(document.getElementById("cliente-id").value.trim());
+        const cep = document.getElementById("endereco-cep").value.trim();
+        const rua = document.getElementById("endereco-rua").value.trim();
+        const bairro = document.getElementById("endereco-bairro").value.trim();
+        const cidade = document.getElementById("endereco-cidade").value.trim();
+        const estado = document.getElementById("endereco-estado").value.trim();
+        const pais = document.getElementById("endereco-pais").value.trim();
+        const main = document.getElementById("endereco-main").checked;
+
+        if (!cep || !rua || !bairro || !cidade || !estado || !pais) {
+          alert("Por favor, preencha todos os campos obrigatórios.");
+          return;
+        }
+        const clientExists = alasql("SELECT * FROM cliente WHERE id = ?", [clientIdValue]);
+        if (clientExists.length === 0) {
+          alert("Cliente não encontrado.");
+          return;
+        }
+        if (main) {
+          alasql("UPDATE endereco SET main = FALSE WHERE clientId = ?", [clientIdValue]);
+        }
+        alasql("INSERT INTO endereco VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [addressId++, clientIdValue, cep, rua, bairro, cidade, estado, pais, main]);
+        alert("Endereço cadastrado com sucesso!");
+        document.getElementById("endereco-form").reset();
+      });
+
+    </script>
+    <script>
+      //consultar endereco
+      document.getElementById("encontrar-endereco-btn").addEventListener("click", () => {
+        const filtro = document.getElementById("filtro").value;
+        const filtroValor = document.getElementById("filtro-valor").value.trim();
+
+        let query = "SELECT * FROM endereco WHERE 1=1";
+        const params = [];
+
+        if (filtro && filtroValor) {
+          query += ` AND ${filtro} LIKE ?`;
+          params.push('%' + filtroValor + '%');
+        }
+
+        const resultados = alasql(query, params);
+
+        const resultadosTabela = document.getElementById("resultados-consulta").getElementsByTagName("tbody")[0];
+        resultadosTabela.innerHTML = "";
+
+        if (resultados.length > 0) {
+          document.getElementById("resultados-consulta").style.display = "table";
+
+          resultados.forEach(endereco => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${endereco.clientId}</td>
+                <td>${endereco.cep}</td>
+                <td>${endereco.rua}</td>
+                <td>${endereco.bairro}</td>
+                <td>${endereco.cidade}</td>
+                <td>${endereco.estado}</td>
+                <td>${endereco.pais}</td>
+                <td>${endereco.main ? 'Sim' : 'Não'}</td>
+            `;
+            resultadosTabela.appendChild(row);
+          });
+        } else {
+          document.getElementById("resultados-consulta").style.display = "table";
+          const row = document.createElement("tr");
+          row.innerHTML = "<td colspan='8'>Nenhum endereço encontrado com os filtros fornecidos.</td>";
+          resultadosTabela.appendChild(row);
+        }
+      });
+    </script>
+    <script>
+      //Exportar endereco
+      document.getElementById("export-endereco-btn").addEventListener("click", () => {
+        const endereco = alasql("SELECT * FROM endereco");
+        const blob = new Blob([JSON.stringify(endereco, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "enderecos.json";
+        a.click();
+
+        URL.revokeObjectURL(url);
+      });
+
+      //Importar banco de dados pré-populado
+      document.getElementById("import-endereco-btn").addEventListener("click", () => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".json";
+
+        input.addEventListener("change", (event) => {
+          const file = event.target.files[0];
+          if (!file) {
+            return;
+          }
+
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const data = JSON.parse(e.target.result);
+            data.forEach(endereco => {
+              alasql("INSERT INTO endereco VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [addressId++, endereco.clientId, endereco.cep, endereco.rua, endereco.bairro,
+                endereco.cidade, endereco.estado, endereco.pais, endereco.main]);
+            });
+            alert("Endereços importados com sucesso!");
+          };
+          reader.readAsText(file);
+        });
+
+        input.click();
+      });
+
+
+    </script>
+</body>
+
+</html>

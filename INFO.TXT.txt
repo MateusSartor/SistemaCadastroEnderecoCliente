@@ -1,0 +1,8 @@
+Para os testes foi utilizado o Navegador Firefox Versão 133.0
+Utilizado a versão do Node.JS v22.11.0
+O programa deve ser iniciado no arquivo Login.html
+Você pode Importar uma tabela já populada em JSON para o login de user ou criar o seu próprio login
+Após o login feito será redirecionado a tela de cadastro de clientes onde você pode Importar uma base da dados pré populada em JSON ou criar com os dados lembrando que é somente 1 CPF por cliente.
+Após os dados na tabela você pode exporta-los em formato JSON.
+Você também pode consultar um cliente com os filtros mostrados no selection
+Você terá a tela de Endereço onde você pode utilizar as mesmas ferramentas da tela de clientes mas nesta você pode colocar somente 1 endereço como principal.
